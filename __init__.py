@@ -1,0 +1,1 @@
+"""A simplified terminal Blackjack game played against/alongside AI agents."""
