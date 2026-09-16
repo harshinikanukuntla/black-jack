@@ -11,15 +11,11 @@ from players import Player
 class TestDealerOwnPlay(unittest.TestCase):
     def test_hits_below_17(self) -> None:
         dealer = Dealer()
-        self.assertEqual(dealer.decide_own_play(total=10, cards_drawn=1, max_cards=3), "hit")
+        self.assertEqual(dealer.decide_own_play(total=10), "hit")
 
     def test_stands_at_or_above_17(self) -> None:
         dealer = Dealer()
-        self.assertEqual(dealer.decide_own_play(total=17, cards_drawn=2, max_cards=3), "stand")
-
-    def test_forced_stand_at_max_cards(self) -> None:
-        dealer = Dealer()
-        self.assertEqual(dealer.decide_own_play(total=10, cards_drawn=3, max_cards=3), "stand")
+        self.assertEqual(dealer.decide_own_play(total=17), "stand")
 
 
 class TestAnnounceWinner(unittest.TestCase):

@@ -1,8 +1,8 @@
-"""Player types: the human, AI agents, and the dealer-as-competitor hand.
+"""Player types: the human, AI agents, and the dealer's own hand.
 
-No player ever draws its own card directly — every draw is requested from
-the Dealer (see blackjack/dealer.py), which is the sole owner of the
-card-drawing function.
+No player ever draws its own card directly. Every draw goes through the
+Dealer (see dealer.py), which is the only thing allowed to call
+draw_card().
 """
 
 from __future__ import annotations
@@ -37,11 +37,18 @@ class Player:
 
     @property
     def can_draw(self) -> bool:
-        return not self.busted and not self.standing and self.cards_drawn < MAX_CARDS
+        # A total of exactly 21 can't be improved, only risked, so nobody
+        # (human included) gets asked to draw again once they hit it.
+        return (
+            not self.busted
+            and not self.standing
+            and self.total < 21
+            and self.cards_drawn < MAX_CARDS
+        )
 
     def add_card(self, card: int) -> None:
         self.hand.append(card)
-        if self.cards_drawn >= MAX_CARDS:
+        if self.cards_drawn >= MAX_CARDS or self.total >= 21:
             self.standing = True
 
     def status_line(self) -> str:
@@ -56,9 +63,8 @@ class HumanPlayer(Player):
     def ask_decision(self) -> str:
         while True:
             remaining = MAX_CARDS - self.cards_drawn
-            prompt = (f"  Your total is {self.total} ({remaining} card"
-                      f"{'s' if remaining != 1 else ''} left you could draw). "
-                      f"Hit or stand? > ")
+            card_word = "card" if remaining == 1 else "cards"
+            prompt = f"  Your total is {self.total} ({remaining} {card_word} left you could draw). Hit or stand? > "
             raw = input(prompt).strip()
             intent = parse_intent(raw)
             if intent is not None:

@@ -4,6 +4,10 @@ from brains import DEFAULT_PERSONALITIES, HeuristicBrain, personality_for_index
 
 
 class TestHeuristicBrain(unittest.TestCase):
+    # Stopping at the card cap or at a total of 21 is Player.can_draw's job
+    # (see test_players.py), not the brain's, since decide() only ever gets
+    # called when a real choice still exists.
+
     def test_hits_below_threshold(self) -> None:
         brain = HeuristicBrain(risk_tolerance=0)  # threshold 16
         self.assertEqual(brain.decide("A", [5], 5, 1, 3), "hit")
@@ -11,14 +15,6 @@ class TestHeuristicBrain(unittest.TestCase):
     def test_stands_above_threshold(self) -> None:
         brain = HeuristicBrain(risk_tolerance=0)
         self.assertEqual(brain.decide("A", [10, 9], 19, 2, 3), "stand")
-
-    def test_forced_stand_at_max_cards(self) -> None:
-        brain = HeuristicBrain(risk_tolerance=5)  # would otherwise want to hit
-        self.assertEqual(brain.decide("A", [2, 2, 2], 6, 3, 3), "stand")
-
-    def test_forced_stand_at_or_above_21(self) -> None:
-        brain = HeuristicBrain(risk_tolerance=5)
-        self.assertEqual(brain.decide("A", [11, 10], 21, 2, 3), "stand")
 
     def test_cautious_stands_earlier_than_aggressive(self) -> None:
         cautious = HeuristicBrain(risk_tolerance=-3)  # threshold 13

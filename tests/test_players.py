@@ -34,6 +34,17 @@ class TestPlayer(unittest.TestCase):
         p.standing = True
         self.assertFalse(p.can_draw)
 
+    def test_cannot_draw_once_total_is_21(self) -> None:
+        # A total of exactly 21 can only get worse, never better, so this
+        # should stop the turn even with cards and draws still available.
+        p = Player(name="Test")
+        p.add_card(10)
+        p.add_card(11)
+        self.assertEqual(p.total, 21)
+        self.assertFalse(p.busted)
+        self.assertFalse(p.can_draw)
+        self.assertTrue(p.standing)
+
     def test_status_line_reports_state(self) -> None:
         p = Player(name="Test")
         self.assertIn("playing", p.status_line())
