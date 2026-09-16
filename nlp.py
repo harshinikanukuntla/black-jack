@@ -1,22 +1,25 @@
-"""Tiny natural-language intent parsing for the human player's turn.
+"""Turns the human player's free text into a hit or stand decision.
 
-Keeps the human interaction free-text ("deal me the next card", "I'll stand
-pat") without requiring an LLM round-trip just to parse hit/stand — that
-would add latency and a failure mode to the most latency-sensitive part of
-the game. Stand-ish words are checked first since phrases like "no more"
-would otherwise trip the "more" hit-keyword.
+This lets you type naturally ("deal me the next card", "I'll stand pat")
+instead of a fixed command. It's just keyword matching, no LLM call, since
+this needs to be instant and never fail. Stand words are checked first
+because a phrase like "no more" would otherwise get caught by the "more"
+hit-keyword.
 """
 
 from __future__ import annotations
 
 STAND_WORDS = (
     "stand", "stay", "pass", "hold", "done", "enough", "no more",
-    "stop", "i'm good", "im good", "no thanks",
+    "stop", "no thanks", "i'm good", "im good",
 )
 HIT_WORDS = (
     "hit", "deal", "draw", "another", "more", "again", "next card",
-    "yes", "sure", "go", "give me",
+    "yes", "sure", "give me",
 )
+# A bare "no" only counts as stand when it's the whole message. As a
+# substring it's too easy to misfire on something like "no worries, hit me".
+EXACT_STAND_WORDS = {"no", "nope", "nah", "n"}
 
 
 def parse_intent(text: str) -> str | None:
@@ -24,6 +27,8 @@ def parse_intent(text: str) -> str | None:
     lowered = text.lower().strip()
     if not lowered:
         return None
+    if lowered in EXACT_STAND_WORDS:
+        return "stand"
     if any(word in lowered for word in STAND_WORDS):
         return "stand"
     if any(word in lowered for word in HIT_WORDS):
