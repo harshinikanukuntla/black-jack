@@ -1,19 +1,19 @@
 """Decision-making "brains" for AI players.
 
-An AI player's brain decides HIT or STAND given the current hand. The game
-engine (blackjack/game.py) never trusts a brain to enforce rules (max cards,
-totals, bust detection), that stays deterministic. A brain only answers one
-question: "hit or stand?", plus an optional flavor comment.
+An AI player's brain only decides HIT or STAND for a hand that's already
+allowed to keep drawing (see Player.can_draw in players.py). It never
+needs to re-check the card cap or a total of 21 itself, since the game
+loop only ever calls it when a real choice exists. A brain just answers
+one question, plus an optional flavor comment.
 
 Two implementations:
   - HeuristicBrain: fast, deterministic, threshold-based, with a
-    per-agent "risk_tolerance" personality knob. Requires no external
-    services and is always available.
+    per-agent "risk_tolerance" personality knob. Needs nothing external
+    and always works.
   - OllamaBrain: asks a local open-weight model (via Ollama, through
-    LangChain's ChatOllama) to make the call. Used when available;
-    the game auto-falls-back to HeuristicBrain if Ollama isn't
-    reachable, the model isn't pulled, or the langchain-ollama
-    package isn't installed.
+    LangChain's ChatOllama) to make the call. Used when available. If
+    Ollama isn't reachable, the model isn't pulled, or langchain-ollama
+    isn't installed, the game falls back to HeuristicBrain instead.
 """
 
 from __future__ import annotations
@@ -49,8 +49,6 @@ class HeuristicBrain:
     risk_tolerance: int = 0
 
     def decide(self, name: str, hand: list[int], total: int, cards_drawn: int, max_cards: int) -> Decision:
-        if cards_drawn >= max_cards or total >= 21:
-            return "stand"
         threshold = 16 + self.risk_tolerance
         if total < threshold:
             return "hit"
@@ -115,13 +113,11 @@ class OllamaBrain:
         return str(response.content).strip()
 
     def decide(self, name: str, hand: list[int], total: int, cards_drawn: int, max_cards: int) -> Decision:
-        if cards_drawn >= max_cards or total >= 21:
-            return "stand"
         system_prompt = (
-            "You are an AI agent playing a simplified blackjack variant. "
-            "Cards are drawn uniformly at random between 2 and 11 (not a "
-            "standard 52-card deck). Each player may draw at most three "
-            f"cards total. Your personality: {self.personality}. "
+            f"You are {name}, an AI agent playing a simplified blackjack "
+            "variant. Cards are drawn uniformly at random between 2 and 11 "
+            "(not a standard 52-card deck). Each player may draw at most "
+            f"three cards total. Your personality: {self.personality}. "
             "Respond with exactly one word: HIT or STAND."
         )
         user_prompt = (
@@ -142,9 +138,10 @@ class OllamaBrain:
 
     def comment(self, name: str, decision: Decision, total: int) -> str:
         system_prompt = (
-            f"You are an AI blackjack player with this personality: {self.personality}. "
-            "In one short, natural sentence (under 15 words), explain your decision "
-            "in character. No preamble."
+            f"You are {name}, an AI blackjack player with this personality: "
+            f"{self.personality}. In one short, natural sentence (under 15 "
+            "words), explain your decision in character. Don't say your own "
+            "name. No preamble."
         )
         user_prompt = f"Your total is {total} and you chose to {decision.upper()}."
         try:
