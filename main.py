@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import random
 import sys
 
 from game import Game
@@ -26,7 +27,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
     if args.seed is not None:
-        import random
         random.seed(args.seed)
 
     if args.agents < 1:
