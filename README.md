@@ -4,6 +4,29 @@ A simplified Blackjack game that runs in the terminal. You play against three AI
 
 The AI agents make their own hit or stand decisions using a local LLM (Llama 3.1 via Ollama, called through LangChain), and fall back to a rule based decision if the LLM isn't available. Either way the game always runs to completion.
 
+# Question - 
+
+Task#1
+
+Blackjack / Applied AI
+
+Build a command-line Python 3.12+ application that simulates a simplified version of Blackjack using a group of at least three AI agent players. 
+
+You may use any AI framework of your choice (LangChain, AutoGen, n8n, CrewAi, etc.) and any LLM you prefer.
+
+A local Python function is provided that simulates drawing a card by returning a random number between 2 and 11.
+There should be One AI dealer “agent"
+Each player (the user and each AI agent) may draw up to three cards.
+The players cannot call the card-drawing function directly. Instead, they must ask the AI dealer to draw cards on their behalf.
+After all players have taken their turns, the winner is the one with the highest total score under 21. 
+Outcome:
+
+The program should run entirely in the terminal.
+The AI agents should simulate decision-making (e.g. whether to draw another card).
+The user should interact with the group naturally (e.g. “deal me the next card”).
+The game should clearly display the outcome and declare the winner
+
+
 ## What this covers from the assignment
 
 | Requirement | How it's handled |
