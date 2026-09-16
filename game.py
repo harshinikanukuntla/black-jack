@@ -1,16 +1,16 @@
-"""The deterministic game loop.
+"""The game loop.
 
-This module owns every rule: turn order, the three-card cap, bust
-detection, and winner determination. Brains (heuristic or LLM) are only
-ever consulted for a single hit/stand choice — they never get to bend a
-rule.
+This is the only place that enforces the actual rules: turn order, the
+three-card cap, bust detection, and who wins. Brains (heuristic or LLM)
+only ever get asked for a single hit or stand choice, and only when
+Player.can_draw says a real choice exists. They never get to bend a rule.
 """
 
 from __future__ import annotations
 
 from brains import build_brain, personality_for_index
 from dealer import Dealer
-from players import MAX_CARDS, AIPlayer, HumanPlayer, Player
+from players import AIPlayer, HumanPlayer, Player
 
 
 class Game:
@@ -35,7 +35,7 @@ class Game:
 
     def run(self) -> None:
         print("=" * 60)
-        print("  SIMPLIFIED BLACKJACK — you vs. the AI agents vs. the dealer")
+        print("  SIMPLIFIED BLACKJACK: you vs. the AI agents vs. the dealer")
         print("=" * 60)
         self.dealer.announce_round_start([self.human.name, *[a.name for a in self.agents]])
 
@@ -48,48 +48,43 @@ class Game:
         self._announce_winner()
 
     def _take_turn(self, player: Player) -> None:
+        """Run one player's turn: keep asking for a decision until they stop drawing."""
         self.dealer.announce_turn(player.name)
         while player.can_draw:
             if isinstance(player, HumanPlayer):
                 decision = player.ask_decision()
-            elif isinstance(player, AIPlayer):
+            else:
                 decision = player.decide()
                 print(f'  {player.name}: "{player.comment(decision)}"')
-            else:  # pragma: no cover - defensive
-                raise TypeError(f"Unknown player type: {type(player)!r}")
 
             if decision == "stand":
                 player.standing = True
                 break
 
-            card = self.dealer.draw_for(player.name)
-            player.add_card(card)
-            print(f"  -> {player.status_line()}")
-
-            if player.busted:
-                print(f"  {player.name} busts!")
-                break
+            self._draw_and_report(player)
 
         if not player.busted:
             print(f"  {player.name} finishes with {player.total}.")
 
     def _take_dealer_turn(self) -> None:
+        """The dealer's own hand: no personality, just the fixed hit-under-17 rule."""
         self.dealer.announce_turn(self.dealer_hand.name)
         while self.dealer_hand.can_draw:
-            decision = self.dealer.decide_own_play(
-                self.dealer_hand.total, self.dealer_hand.cards_drawn, MAX_CARDS
-            )
-            if decision == "stand":
+            if self.dealer.decide_own_play(self.dealer_hand.total) == "stand":
                 self.dealer_hand.standing = True
                 break
-            card = self.dealer.draw_for(self.dealer_hand.name)
-            self.dealer_hand.add_card(card)
-            print(f"  -> {self.dealer_hand.status_line()}")
-            if self.dealer_hand.busted:
-                print(f"  {self.dealer_hand.name} busts!")
-                break
+            self._draw_and_report(self.dealer_hand)
+
         if not self.dealer_hand.busted:
             print(f"  {self.dealer_hand.name} finishes with {self.dealer_hand.total}.")
+
+    def _draw_and_report(self, player: Player) -> None:
+        """Ask the dealer for one card, add it to the hand, and print what happened."""
+        card = self.dealer.draw_for(player.name)
+        player.add_card(card)
+        print(f"  -> {player.status_line()}")
+        if player.busted:
+            print(f"  {player.name} busts!")
 
     def _show_final_table(self) -> None:
         print("\n" + "-" * 60)
