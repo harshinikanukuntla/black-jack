@@ -1,0 +1,7 @@
+# Core game: no dependencies beyond the Python 3.12+ standard library.
+#
+# Optional: only needed to enable the real LLM-backed agent brain via a
+# local Ollama server. Without these installed (or without Ollama running),
+# the game automatically falls back to the built-in heuristic brain.
+langchain-core>=0.3.0
+langchain-ollama>=0.2.0
