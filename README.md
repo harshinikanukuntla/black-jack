@@ -1,76 +1,67 @@
-# Blackjack — AI Agent Table
+# Blackjack with AI Agents
 
-A terminal-based, simplified Blackjack game. You play against **three AI
-agent players** with distinct personalities and **one AI dealer**, who also
-plays its own hand. Runs entirely in the CLI on Python 3.12+.
+A simplified Blackjack game that runs in the terminal. You play against three AI agents, each with a different personality, and a dealer who also plays a hand. Cards aren't drawn from a real deck, a card is just a random number between 2 and 11, and everyone (you included) can draw at most three cards.
 
-## Rules (simplified)
+The AI agents make their own hit or stand decisions using a local LLM (Llama 3.1 via Ollama, called through LangChain), and fall back to a rule based decision if the LLM isn't available. Either way the game always runs to completion.
 
-- A "card" is a random integer between 2 and 11 (not a standard 52-card deck).
-- **Only the dealer can draw cards.** Every player — you and each AI agent —
-  must *ask the dealer* to draw on their behalf.
-- Every hand (you, each AI agent, and the dealer) may draw **up to three
-  cards**.
-- Turn order: you, then each AI agent in turn, then the dealer plays last.
-- The dealer's own hand follows the standard fixed blackjack rule (hit while
-  total < 17, else stand) rather than a personality — real dealers play by
-  rule, not judgment.
-- Busting (total > 21) eliminates a hand from winning.
-- After every hand has finished, whoever has the **highest total ≤ 21**
-  wins. Ties are announced as a push; if everyone busts, there's no winner.
+## What this covers from the assignment
 
-## How the AI agents "decide"
-
-Each AI agent's hit/stand choice is delegated to a pluggable **brain**
-(`blackjack/brains.py`):
-
-- **`OllamaBrain`** (used when available): asks a real, locally-hosted
-  open-weight LLM via [Ollama](https://ollama.com), through
-  [LangChain](https://python.langchain.com)'s `ChatOllama` integration. Each
-  agent gets its own personality baked into its system prompt (see below),
-  so the same hand can produce different decisions per agent.
-- **`HeuristicBrain`** (automatic fallback): a deterministic, threshold-based
-  policy with a per-agent "risk tolerance" knob, used when Ollama isn't
-  installed, isn't running, or the model isn't pulled. The game always
-  prints a one-time note when it falls back, and then plays a complete game
-  either way — there's no hard dependency on a live model.
-
-Regardless of which brain is used, the **game engine never trusts the brain
-to enforce rules**. Turn order, the three-card cap, arithmetic totals, bust
-detection, and winner determination are all deterministic Python — a brain
-only ever answers "hit or stand?" for a single decision.
-
-The three default personalities:
-
-| Agent | Personality |
+| Requirement | How it's handled |
 |---|---|
-| Cautious Cal | risk-averse, stops early rather than risk busting |
-| Balanced Bailey | weighs risk and reward evenly |
-| Aggressive Amy | bold, keeps drawing to chase a higher score |
+| CLI Python app, at least 3 AI agents | `main.py` is the entry point, 3 AI agents by default (`--agents` to change it) |
+| Any AI framework and LLM | LangChain, calling a local Llama 3.1 model through Ollama |
+| Given `draw_card()` function (random 2 to 11) | Used as is in `cards.py`, untouched |
+| One AI dealer agent | `Dealer` class in `dealer.py`, the only one that calls `draw_card()` |
+| Each player can draw up to 3 cards | Enforced in `Player.can_draw` / `Player.add_card` in `players.py` |
+| Players ask the dealer to draw, they can't draw themselves | Every draw goes through `Dealer.draw_for()`, nothing else touches `draw_card()` |
+| Winner is highest total under 21 after all turns | `Game._announce_winner()` in `game.py` |
+| Runs entirely in the terminal | No GUI anywhere, plain `input()`/`print()` |
+| AI agents simulate decision making | `brains.py`, each agent decides hit or stand based on its hand and personality |
+| User interacts naturally ("deal me the next card") | `nlp.py` parses free text like "hit me", "deal me another", "I'll stand" |
+| Clearly shows outcome and winner | Final table and winner announcement printed at the end of every game |
 
-## Why LangChain (and not AutoGen / CrewAI / n8n)
+One thing I added beyond the spec: the dealer also plays its own hand at the end (standard "hit until 17" rule, not AI driven, since real dealers follow a fixed rule rather than making a judgment call) and competes for the win alongside everyone else.
 
-Blackjack has rules that must be enforced by code, not agent judgment: turn
-order, the three-card cap, and correct arithmetic. AutoGen and CrewAI are
-built for open-ended multi-agent collaboration on loosely-structured tasks,
-which fights against that need for strict, deterministic control. n8n is a
-visual workflow tool meant to run as an external service — the wrong shape
-for a Python CLI app. LangChain is used narrowly here, only at the single
-seam where an LLM call actually adds value: "given this hand, hit or
-stand?" — everything else stays plain, testable Python.
+## Requirements
 
-## Setup
+- Python 3.12 or newer
+- Optional: [Ollama](https://ollama.com) if you want the real LLM brain instead of the fallback
 
+## Running it
+
+This project uses `uv`, but plain pip works too.
+
+With uv:
+```bash
+uv sync
+uv run python3 main.py
+```
+
+With pip:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt   # optional: only needed for the LLM brain
+pip install -r requirements.txt
+python3 main.py
 ```
 
-### Enabling the real LLM brain (optional)
+You'll be asked for your name at the start. If you'd rather skip that prompt, pass `--name` directly.
 
-The game works out of the box with the heuristic brain. To use a real
-local LLM instead:
+Useful flags:
+```bash
+python3 main.py --no-llm            # skip Ollama entirely, use the rule based brain
+python3 main.py --agents 5          # play with 5 AI agents instead of 3
+python3 main.py --seed 7            # same card sequence every run, handy for testing
+python3 main.py --name Alex         # skip the interactive name prompt
+```
+
+## Playing
+
+When it's your turn, just type what you'd naturally say: "hit me", "deal me the next card", "I'll stand", "stay", "no more". No need to type exact commands.
+
+## Using the real LLM instead of the fallback
+
+The game works fine without this, it just uses simpler rule based logic for the AI agents. To get the actual LLM making decisions:
 
 ```bash
 brew install ollama
@@ -78,47 +69,25 @@ brew services start ollama
 ollama pull llama3.1:8b
 ```
 
-Verify it's reachable: `curl http://localhost:11434/api/version`.
+Then run the game normally, no extra flag needed. If Ollama isn't reachable for any reason, the game prints a short note and keeps going on the fallback brain instead of crashing.
 
-## Running the game
-
-```bash
-python3 main.py
-```
-
-Options:
+## Tests
 
 ```bash
-python3 main.py --agents 4              # play with 4 AI agents instead of 3
-python3 main.py --no-llm                # force the heuristic brain, skip Ollama entirely
-python3 main.py --model mistral:7b      # use a different Ollama model tag
-python3 main.py --seed 7                # reproducible card draws, for testing
+uv run python -m unittest discover -s tests -v
 ```
 
-During your turn, respond naturally — e.g. `hit me`, `deal me the next
-card`, `I'll stand`, `stay`, `no more`.
+26 tests, covering the three card cap, bust detection, natural language parsing, the fallback brain's decision logic, the dealer's fixed rule, and full game runs including ties and everyone busting.
 
-## Running the tests
-
-```bash
-python3 -m unittest discover -s tests -v
-```
-
-26 tests cover card range, hand/bust logic, the three-card cap, natural
-language intent parsing, the heuristic brain's threshold behavior, the
-dealer's fixed play rule, winner/tie/no-winner determination, and a full
-end-to-end game run.
-
-## Project layout
+## Files
 
 ```
-main.py                 CLI entry point (argparse)
-blackjack/
-  cards.py               the given draw_card() primitive
-  dealer.py               the AI dealer agent: services draw requests, plays its own hand
-  brains.py               pluggable hit/stand decision-making (Ollama + heuristic fallback)
-  players.py               Player / HumanPlayer / AIPlayer, three-card cap, bust logic
-  nlp.py                   free-text hit/stand intent parsing for the human player
-  game.py                  deterministic turn loop, rule enforcement, winner determination
-tests/                    unit tests (stdlib unittest, no extra dependencies)
+main.py       entry point, command line flags, asks for your name
+cards.py      the given draw_card() function
+dealer.py     the dealer agent, draws cards for everyone, plays its own hand
+brains.py     hit/stand decision logic, LLM based and rule based
+players.py    player state, hand, bust check, three card limit
+nlp.py        turns free text like "hit me" into a hit/stand decision
+game.py       runs the turns, enforces the rules, decides the winner
+tests/        unit tests
 ```

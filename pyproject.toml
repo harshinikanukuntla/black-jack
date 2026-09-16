@@ -1,0 +1,13 @@
+[project]
+name = "black-jack"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Harshini Kanukuntla", email = "harshini.kanukuntla@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "langchain-core>=1.6.3",
+    "langchain-ollama>=1.1.0",
+]

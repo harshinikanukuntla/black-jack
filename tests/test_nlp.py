@@ -1,0 +1,25 @@
+import unittest
+
+from nlp import parse_intent
+
+
+class TestParseIntent(unittest.TestCase):
+    def test_hit_phrases(self) -> None:
+        for phrase in ["hit", "hit me", "deal me the next card", "give me another", "draw"]:
+            self.assertEqual(parse_intent(phrase), "hit", phrase)
+
+    def test_stand_phrases(self) -> None:
+        for phrase in ["stand", "I'll stand", "stay", "no more", "I'm good", "pass"]:
+            self.assertEqual(parse_intent(phrase), "stand", phrase)
+
+    def test_unrecognized_returns_none(self) -> None:
+        self.assertIsNone(parse_intent("what's the weather"))
+        self.assertIsNone(parse_intent(""))
+
+    def test_stand_takes_priority_over_hit_keyword_collision(self) -> None:
+        # "no more" contains "more" (a hit keyword) but should read as stand.
+        self.assertEqual(parse_intent("no more for me"), "stand")
+
+
+if __name__ == "__main__":
+    unittest.main()
