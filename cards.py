@@ -1,9 +1,7 @@
-"""Card drawing primitive.
+"""The card drawing function given by the assignment.
 
-Per the assignment spec, this simulates a "card" as a random value between
-2 and 11 (inclusive) rather than modeling a full 52-card deck. Only the
-Dealer is allowed to call this — players must ask the dealer to draw on
-their behalf.
+A "card" here is just a random number from 2 to 11, not a real deck.
+Only the Dealer calls this. Every player has to go through the dealer.
 """
 
 import random
